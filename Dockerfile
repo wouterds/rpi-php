@@ -101,7 +101,7 @@ RUN cd $BPATH \
 RUN cd /usr/local/etc \
 	&& if [ -d php-fpm.d ]; then \
 		cp php-fpm.d/www.conf.default php-fpm.d/www.conf; \
-		fi \
+	   fi;
 
 RUN ln --symbolic /usr/local/php/bin/php /usr/bin/php \
 	&& ln --symbolic /usr/local/php/sbin/php-fpm /usr/sbin/php-fpm \
