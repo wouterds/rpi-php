@@ -98,6 +98,11 @@ RUN cd $BPATH \
 		--with-config-file-scan-dir=/etc/php/fpm/conf.d \
 	&& make && make install && make clean;
 
+RUN cd /usr/local/etc \
+	&& if [ -d php-fpm.d ]; then \
+		cp php-fpm.d/www.conf.default php-fpm.d/www.conf; \
+		fi \
+
 RUN ln --symbolic /usr/local/php/bin/php /usr/bin/php \
 	&& ln --symbolic /usr/local/php/sbin/php-fpm /usr/sbin/php-fpm \
 	&& echo 'zend_extension=opcache.so' > /etc/php/conf.d/opcache.ini \
