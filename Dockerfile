@@ -40,7 +40,7 @@ RUN mkdir --parents /usr/local/php \
 	&& mkdir --parents /etc/php/fpm/conf.d \
 	&& mkdir --parents --mode=777 /var/log/php;
 
-RUN wget https://github.com/php/php-src/archive/php-$PHP_VERSION.tar.gz \
+RUN wget --show-progress https://github.com/php/php-src/archive/php-$PHP_VERSION.tar.gz \
 	&& tar xzf php-$PHP_VERSION.tar.gz \
 	&& rm php-$PHP_VERSION.tar.gz \
 	&& mv php-src-php-$PHP_VERSION $BPATH;
