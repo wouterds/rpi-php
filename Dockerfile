@@ -100,6 +100,8 @@ RUN cd $BPATH \
 
 RUN cd /usr/local/etc \
     && if [ -d php-fpm.d ]; then \
+        # for some reason, upstream's php-fpm.conf.default has "include=NONE/etc/php-fpm.d/*.conf"
+        sed 's!=NONE/!=!g' php-fpm.conf.default | tee php-fpm.conf > /dev/null; \
         cp php-fpm.d/www.conf.default php-fpm.d/www.conf; \
        fi;
 
