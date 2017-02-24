@@ -2,6 +2,10 @@
 
 A basic PHP image that's compatible with Raspberry Pi. Automated builds are pushed whenever a new version of PHP becomes available.
 
+### Supported tags and respective `Dockerfile` links
+
+- [`7.0.0`, `7.0`, `latest` (*Dockerfile*)](https://github.com/wouterds/rpi-php/tree/7.0.0/Dockerfile)
+
 ### What is PHP?
 
 PHP is a server-side scripting language designed for web development, but which can also be used as a general-purpose programming language. PHP can be added to straight HTML or it can be used with a variety of templating engines and web frameworks. PHP code is usually processed by an interpreter, which is either implemented as a native module on the web-server or as a common gateway interface (CGI).
@@ -12,4 +16,4 @@ PHP is a server-side scripting language designed for web development, but which 
 
 ---
 
-This image is available on [GitHub](https://github.com/wouterds/raspberrypi-php) & [DockerHub](https://hub.docker.com/r/wouterds/raspberrypi-php).
+This image is available on [GitHub](https://github.com/wouterds/rpi-php) & [DockerHub](https://hub.docker.com/r/wouterds/rpi-php).

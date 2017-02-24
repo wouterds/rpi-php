@@ -1,131 +1,124 @@
 FROM jsurf/rpi-raspbian:latest
 MAINTAINER Wouter De Schuyter <wouter.de.schuyter@gmail.com>
 
-# Enable cross build for automated builds
-RUN [ "cross-build-start" ]
-
-# PHP Version
+# PHP version
 ENV PHP_VERSION 7.0.0
 
-# Build path
-ENV BPATH /usr/local/src/php
+# Other env variables
+ENV PHP_INI_DIR /usr/local/etc/php
+ENV PHP_SRC_URL https://secure.php.net/get/php-$PHP_VERSION.tar.xz/from/this/mirror
+ENV PHP_EXTRA_CONFIGURE_ARGS --enable-fpm --with-fpm-user=www-data --with-fpm-group=www-data
+ENV PHPIZE_DEPS \
+		autoconf \
+		file \
+		g++ \
+		gcc \
+		libc-dev \
+		make \
+		pkg-config \
+		re2c
 
-RUN apt-get update;
+# Copy over helper binaries
+COPY docker-php-* /usr/local/bin/
 
-RUN apt-get install -y --no-install-recommends \
-    wget \
-    bison \
-    autoconf \
-    pkg-config \
-    build-essential;
+# Enable cross build
+RUN ["cross-build-start"]
 
-RUN apt-get install -y --no-install-recommends \
-    libssl-dev \
-    libltdl-dev \
-    libbz2-dev \
-    libxml2-dev \
-    libxslt1-dev \
-    libpspell-dev \
-    libenchant-dev \
-    libmcrypt-dev \
-    libpng-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
-    libmysqlclient-dev \
-    libcurl4-openssl-dev;
+# Install deps
+RUN apt-get update \
+	&& apt-get install --no-install-recommends -y \
+		$PHPIZE_DEPS \
+		ca-certificates \
+		curl \
+		libedit2 \
+		libsqlite3-0 \
+		libxml2 \
+		xz-utils \
+	&& apt-get clean \
+	&& rm -r /var/lib/apt/lists/*
 
-RUN mkdir --parents /usr/local/php \
-    && mkdir --parents /etc/php/conf.d \
-    && mkdir --parents /etc/php/cli/conf.d \
-    && mkdir --parents /etc/php/fpm/conf.d \
-    && mkdir --parents --mode=777 /var/log/php;
+# Create PHP ini dir
+RUN mkdir -p $PHP_INI_DIR/conf.d
 
-RUN wget --show-progress https://github.com/php/php-src/archive/php-$PHP_VERSION.tar.gz \
-    && tar xzf php-$PHP_VERSION.tar.gz \
-    && rm php-$PHP_VERSION.tar.gz \
-    && mv php-src-php-$PHP_VERSION $BPATH;
+# Preparation, download src etc
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends wget \
+	&& apt-get clean \
+	&& rm -r /var/lib/apt/lists/* \
+	&& mkdir -p /usr/src \
+	&& cd /usr/src \
+	&& wget --show-progress -O php.tar.xz $PHP_SRC_URL \
+	&& apt-get purge -y --auto-remove wget
 
-RUN cd $BPATH \
-    && ./buildconf --force \
-    && php_configure_args=" \
-        --prefix=/usr/local/php \
-        \
-        --with-bz2 \
-        --with-zlib \
-        --enable-zip \
-        \
-        --with-mcrypt \
-        --with-openssl \
-        \
-        --with-curl \
-        --enable-ftp \
-        --with-mysqli \
-        --enable-sockets \
-        --enable-pcntl \
-        \
-        --with-pspell \
-        --with-enchant \
-        --with-gettext \
-        \
-        --with-gd \
-        --enable-exif \
-        --with-jpeg-dir \
-        --with-png-dir \
-        --with-freetype-dir \
-        \
-        --with-xsl \
-        --enable-bcmath \
-        --enable-mbstring \
-        --enable-calendar \
-        \
-        --enable-sysvmsg \
-        --enable-sysvsem \
-        --enable-sysvshm \
-        ";
+# Build
+RUN set -xe; \
+	buildDeps=" \
+		$PHP_EXTRA_BUILD_DEPS \
+		libcurl4-openssl-dev \
+		libedit-dev \
+		libsqlite3-dev \
+		libssl-dev \
+		libxml2-dev \
+	" \
+	&& apt-get update \
+	&& apt-get install --no-install-recommends -y $buildDeps \
+	&& apt-get clean \
+	&& rm -r /var/lib/apt/lists/* \
+	&& docker-php-source extract \
+	&& cd /usr/src/php \
+	&& ./configure \
+		--with-config-file-path="$PHP_INI_DIR" \
+		--with-config-file-scan-dir="$PHP_INI_DIR/conf.d" \
+		--disable-cgi \
+		--enable-ftp \
+		--enable-mbstring \
+		--with-curl \
+		--with-libedit \
+		--with-openssl \
+		--with-zlib \
+		\
+		$PHP_EXTRA_CONFIGURE_ARGS \
+	&& make -j "$(nproc)" \
+	&& make install \
+	&& { find /usr/local/bin /usr/local/sbin -type f -executable -exec strip --strip-all '{}' + || true; } \
+	&& make clean \
+	&& docker-php-source delete \
+	&& apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps \
+	&& apt-get clean \
+	&& rm -r /var/lib/apt/lists/*
 
-RUN cd $BPATH \
-    && ./configure $php_configure_args \
-        --with-config-file-path=/etc/php/cli \
-        --with-config-file-scan-dir=/etc/php/cli/conf.d \
-    && make && make install && make clean;
+# Configure
+RUN set -ex; \
+	cd /usr/local/etc \
+	&& { \
+		# for some reason, upstream's php-fpm.conf.default has "include=NONE/etc/php-fpm.d/*.conf"
+		sed 's!=NONE/!=!g' php-fpm.conf.default | tee php-fpm.conf > /dev/null; \
+		cp php-fpm.d/www.conf.default php-fpm.d/www.conf; \
+	} \
+	&& { \
+		echo '[global]'; \
+		echo 'error_log = /proc/self/fd/2'; \
+		echo; \
+		echo '[www]'; \
+		echo '; if we send this to /proc/self/fd/1, it never appears'; \
+		echo 'access.log = /proc/self/fd/2'; \
+		echo; \
+		echo 'clear_env = no'; \
+		echo; \
+		echo '; Ensure worker stdout and stderr are sent to the main error log.'; \
+		echo 'catch_workers_output = yes'; \
+	} | tee php-fpm.d/docker.conf \
+	&& { \
+		echo '[global]'; \
+		echo 'daemonize = no'; \
+		echo; \
+		echo '[www]'; \
+		echo 'listen = [::]:9000'; \
+	} | tee php-fpm.d/zz-docker.conf
 
-RUN cd $BPATH \
-    && ./configure $php_configure_args \
-        --disable-cli --enable-fpm \
-        --with-fpm-user=www-data \
-        --with-fpm-group=www-data \
-        --with-config-file-path=/etc/php/fpm \
-        --with-config-file-scan-dir=/etc/php/fpm/conf.d \
-    && make && make install && make clean;
+# Disable cross build
+RUN ["cross-build-end"]
 
-RUN cd /usr/local/etc \
-    && if [ -d php-fpm.d ]; then \
-        # for some reason, upstream's php-fpm.conf.default has "include=NONE/etc/php-fpm.d/*.conf"
-        sed 's!=NONE/!=!g' php-fpm.conf.default | tee php-fpm.conf > /dev/null; \
-        cp php-fpm.d/www.conf.default php-fpm.d/www.conf; \
-       fi;
-
-RUN ln --symbolic /usr/local/php/bin/php /usr/bin/php \
-    && ln --symbolic /usr/local/php/sbin/php-fpm /usr/sbin/php-fpm \
-    && echo 'zend_extension=opcache.so' > /etc/php/conf.d/opcache.ini \
-    && ln --symbolic /etc/php/conf.d/opcache.ini /etc/php/cli/conf.d/opcache.ini \
-    && ln --symbolic /etc/php/conf.d/opcache.ini /etc/php/fpm/conf.d/opcache.ini;
-
-RUN apt-get remove --purge -y \
-        wget \
-        bison \
-        autoconf \
-        pkg-config \
-        build-essential \
-    && apt-get autoremove --purge -y \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && rm -rf $BPATH;
-
-# Disable cross build again
-RUN [ "cross-build-end" ]
-
-# Exposed ports
+ENTRYPOINT ["docker-php-entrypoint"]
 EXPOSE 9000
-
 CMD ["php-fpm"]
