@@ -72,6 +72,7 @@ RUN set -xe; \
 		--disable-cgi \
 		--enable-ftp \
 		--enable-mbstring \
+		--enable-mysqlnd \
 		--with-curl \
 		--with-libedit \
 		--with-openssl \
