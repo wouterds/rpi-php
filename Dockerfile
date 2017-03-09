@@ -2,7 +2,7 @@ FROM jsurf/rpi-raspbian:latest
 MAINTAINER Wouter De Schuyter <wouter.de.schuyter@gmail.com>
 
 # PHP version
-ENV PHP_VERSION 7.0.16
+ENV PHP_VERSION 7.1.0
 
 # Other env variables
 ENV PHP_INI_DIR /usr/local/etc/php
