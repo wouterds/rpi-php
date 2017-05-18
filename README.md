@@ -5,7 +5,7 @@ A basic PHP image that's compatible with Raspberry Pi. Automated builds are push
 ### Supported tags and respective `Dockerfile` links
 
 - [`7.1.1`](https://github.com/wouterds/rpi-php/tree/7.1.1/Dockerfile), [`7.1.2`](https://github.com/wouterds/rpi-php/tree/7.1.2/Dockerfile), [`7.1.3`, `7.1`, `latest` (*Dockerfile*)](https://github.com/wouterds/rpi-php/tree/7.1.3/Dockerfile)
-- [`7.0.15`](https://github.com/wouterds/rpi-php/tree/7.0.15/Dockerfile), [`7.0.16`](https://github.com/wouterds/rpi-php/tree/7.0.16/Dockerfile), [`7.0.17`, `7.0`, `latest` (*Dockerfile*)](https://github.com/wouterds/rpi-php/tree/7.0.17/Dockerfile)
+- [`7.0.16`](https://github.com/wouterds/rpi-php/tree/7.0.16/Dockerfile), [`7.0.17`](https://github.com/wouterds/rpi-php/tree/7.0.17/Dockerfile), [`7.0.18`, `7.0`, `latest` (*Dockerfile*)](https://github.com/wouterds/rpi-php/tree/7.0.18/Dockerfile)
 
 ### What is PHP?
 
